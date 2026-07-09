@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE BRICK. | Redefined</title>
+    <style>
+        /* Base Reset & Variables */
+        :root {
+            --bg-color: #030303;
+            --text-color: #ffffff;
+            --accent: #ff2a2a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            user-select: none;
+        }
+
+        /* Animated Ambient Background */
+        .ambient-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at 50% 50%, #1a0000 0%, #030303 70%);
+            z-index: -2;
+        }
+        .glow-orb {
+            position: fixed; width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(255, 42, 42, 0.10) 0%, transparent 70%);
+            border-radius: 50%; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse 4s infinite alternate;
+            z-index: -1;
+        }
+        @keyframes pulse { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(-50%, -50%) scale(1.5); } }
+
+        /* Typography */
+        h1, h2 { font-weight: 900; letter-spacing: -0.05em; text-transform: uppercase; }
+        p { font-size: 1.2rem; line-height: 1.6; color: #aaa; }
+        
+        /* Navigation */
+        nav {
+            position: fixed; top: 0; width: 100%; padding: 25px 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1000; mix-blend-mode: difference;
+        }
+        nav .logo { font-weight: 900; font-size: 1.5rem; letter-spacing: 3px; }
+        nav button {
+            background: transparent; color: var(--text-color);
+            border: 1px solid var(--text-color); padding: 10px 24px; font-weight: 700;
+            border-radius: 50px; text-transform: uppercase; transition: 0.3s;
+            cursor: pointer;
+        }
+        nav button:hover { background: var(--text-color); color: var(--bg-color); }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; position: relative;
+            gap: 60px; padding-top: 80px;
+        }
+        .hero h1 { 
+            font-size: 9vw; z-index: 2; 
+            text-shadow: 0 0 40px rgba(255, 42, 42, 0.4);
+            pointer-events: none; line-height: 1;
+        }
+        .drag-hint { color: var(--accent); font-weight: bold; letter-spacing: 2px; text-transform: uppercase; animation: flash 2s infinite; }
+        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* TRUE 3D CSS CUBE */
+        .scene { width: 280px; height: 90px; perspective: 1000px; z-index: 10; cursor: grab; }
+        .scene:active { cursor: grabbing; }
+        .cube {
+            width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+            transform: rotateX(-20deg) rotateY(25deg); transition: transform 0.1s;
+        }
+        .face {
+            position: absolute; border: 2px solid #8b0000;
+            background: linear-gradient(135deg, #d32f2f, #9c1414);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .face::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(0,0,0,0.3) 1px, transparent 1px);
+            background-size: 6px 6px; opacity: 0.4;
+        }
+        .front  { width: 280px; height: 90px; transform: rotateY(0deg) translateZ(70px); }
+        .back   { width: 280px; height: 90px; transform: rotateY(180deg) translateZ(70px); }
+        .right  { width: 140px; height: 90px; transform: rotateY(90deg) translateZ(140px); left: 70px; }
+        .left   { width: 140px; height: 90px; transform: rotateY(-90deg) translateZ(140px); left: 70px; }
+        .top    { width: 280px; height: 140px; transform: rotateX(90deg) translateZ(45px); top: -25px; }
+        .bottom { width: 280px; height: 140px; transform: rotateX(-90deg) translateZ(45px); top: -25px; box-shadow: 0 0 50px rgba(0,0,0,0.9); }
+
+        /* General Section Styling */
+        .section { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 100px 10vw; flex-direction: column; }
+        .reveal { opacity: 0; transform: translateY(80px) scale(0.95); transition: all 1s cubic-bezier(0.19, 1, 0.22, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0) scale(1); }
+
+        /* Smooth Pile-Up Game Section */
+        .game-container {
+            width: 100%; max-width: 500px;
+            background: #0a0a0a; border: 1px solid #333;
+            border-radius: 10px; padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 60px rgba(255,0,0,0.02);
+            text-align: center; margin-top: 30px;
+        }
+        canvas {
+            background: #111; border-radius: 5px; cursor: pointer;
+            width: 100%; height: 500px; display: block; margin: 20px auto;
+            border: 1px solid #333; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            touch-action: none; /* Prevents page scrolling while tapping game */
+        }
+        .game-ui { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; color: var(--accent); }
+
+        /* Reviews Section */
+        .reviews-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; width: 100%; max-width: 900px; margin-top: 50px; }
+        .review-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 12px; text-align: left; }
+        .stars { color: var(--accent); font-size: 1.2rem; margin-bottom: 15px; }
+        .review-text { font-style: italic; font-size: 1.1rem; color: #ddd; margin-bottom: 20px; }
+        .review-author { font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; }
+
+        /* Order Section */
+        .order-section { background: #080808; border-top: 1px solid #222; }
+        .order-form { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 500px; margin-top: 40px; }
+        .order-form input, .order-form textarea {
+            width: 100%; padding: 18px; background: #111; border: 1px solid #333; color: white;
+            font-family: inherit; font-size: 1rem; border-radius: 6px; outline: none; transition: 0.3s;
+        }
+        .order-form input:focus, .order-form textarea:focus { border-color: var(--accent); }
+        .order-form textarea { resize: vertical; min-height: 120px; }
+        .order-form button {
+            background: var(--accent); color: white; border: none; padding: 20px;
+            font-size: 1.2rem; font-weight: 900; border-radius: 6px; cursor: pointer; text-transform: uppercase;
+            transition: background 0.3s, transform 0.2s;
+        }
+        .order-form button:hover { background: #ff4c4c; transform: translateY(-3px); }
+
+        @media (max-width: 768px) {
+            .reviews-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 12vw; }
+            nav { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient FX -->
+    <div class="ambient-bg"></div>
+    <div class="glow-orb"></div>
+
+    <nav>
+        <div class="logo">THE BRICK.</div>
+        <button onclick="document.getElementById('order').scrollIntoView({behavior: 'smooth'});">Order Here</button>
+    </nav>
+
+    <!-- 3D Interactive Hero -->
+    <section class="hero">
+        <h1>THE BRICK.</h1>
+        <div class="scene" id="scene">
+            <div class="cube" id="cube">
+                <div class="face front"></div>
+                <div class="face back"></div>
+                <div class="face right"></div>
+                <div class="face left"></div>
+                <div class="face top"></div>
+                <div class="face bottom"></div>
+            </div>
+        </div>
+        <div class="drag-hint">Click & Drag to Inspect</div>
+    </section>
+
+    <!-- Pile Up Game Section -->
+    <section class="section">
+        <div class="reveal" style="text-align: center;">
+            <h2 style="font-size: 3rem; margin-bottom: 10px;">Build Your Tower.</h2>
+            <p>Precision piling game. Tap anywhere on the board to drop a brick.</p>
+        </div>
+        
+        <div class="game-container reveal">
+            <div class="game-ui">
+                <span>TOWER HEIGHT: <span id="score">0</span></span>
+                <span id="game-status">TAP TO START</span>
+            </div>
+            <canvas id="gameCanvas" width="400" height="500"></canvas>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="section">
+        <div class="reveal" style="text-align: center;">
+            <h2 style="font-size: 3rem; margin-bottom: 10px;">Customer Thoughts</h2>
+            <p>Don't just take our word for it.</p>
+        </div>
+        <div class="reviews-grid reveal">
+            <div class="review-card">
+                <div class="stars">★★★★★</div>
+                <div class="review-text">"It's a brick. A real, heavy, red brick. I put it on my table and stared at it for three hours. Groundbreaking."</div>
+                <div class="review-author">— Dave from Brooklyn</div>
+            </div>
+            <div class="review-card">
+                <div class="stars">★★★★★</div>
+                <div class="review-text">"I bought this to fix a hole in my wall, but it was too beautiful. Now it sits on my desk as a monument to simplicity."</div>
+                <div class="review-author">— Sarah from Miami</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Order Section -->
+    <section id="order" class="section order-section">
+        <div class="reveal" style="text-align: center; width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <h2 style="font-size: 3.5rem; margin-bottom: 10px;">Secure Yours.</h2>
+            <p>Enter your details below to claim your foundation.</p>
+            
+            <form class="order-form" onsubmit="event.preventDefault(); alert('Order received! Your premium brick is being prepared for shipping.'); this.reset();">
+                <input type="text" placeholder="Your Name" required>
+                <input type="tel" placeholder="Phone Number" required>
+                <textarea placeholder="Full Address" required></textarea>
+                <button type="submit">Complete Order</button>
+            </form>
+        </div>
+    </section>
+
+    <script>
+        /* -------------------------
+           1. True 3D Drag & Rotate
+        -------------------------- */
+        const cube = document.getElementById('cube');
+        const scene = document.getElementById('scene');
+        let isSpinning = false;
+        let prevMousePos = { x: 0, y: 0 };
+        let rotation = { x: -20, y: 25 }; 
+
+        scene.addEventListener('pointerdown', (e) => {
+            isSpinning = true;
+            prevMousePos = { x: e.clientX, y: e.clientY };
+            cube.style.transition = 'none'; 
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isSpinning) return;
+            let deltaX = e.clientX - prevMousePos.x;
+            let deltaY = e.clientY - prevMousePos.y;
+            rotation.y += deltaX * 0.5;
+            rotation.x -= deltaY * 0.5;
+            cube.style.transform = `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`;
+            prevMousePos = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('pointerup', () => {
+            if(isSpinning) {
+                isSpinning = false;
+                cube.style.transition = 'transform 0.5s ease-out'; 
+            }
+        });
+
+        /* -------------------------
+           2. Scroll Reveal Animations
+        -------------------------- */
+        const reveals = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if(entry.isIntersecting) { entry.target.classList.add('active'); }
+            });
+        }, { threshold: 0.15 });
+        reveals.forEach(reveal => observer.observe(reveal));
+
+        /* -------------------------
+           3. Smooth Pile-Up Game Engine
+        -------------------------- */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const statusEl = document.getElementById('game-status');
+        
+        let gameState = 'START'; // START, PLAYING, GAMEOVER
+        let score = 0;
+        let bWidth = 140;
+        let bHeight = 40;
+        let speed = 4;
+        
+        let stack = [];
+        let activeBrick = null;
+
+        function initGame() {
+            // Setup Base Brick
+            stack = [{ 
+                x: canvas.width / 2 - bWidth / 2, 
+                y: canvas.height - bHeight, 
+                w: bWidth, 
+                h: bHeight 
+            }];
+            score = 0;
+            speed = 4;
+            scoreEl.innerText = score;
+            statusEl.innerText = "TAP TO DROP";
+            statusEl.style.color = "var(--accent)";
+            gameState = 'PLAYING';
+            
+            spawnActiveBrick();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnActiveBrick() {
+            // Spawn high above the top brick
+            const topBrick = stack[stack.length - 1];
+            activeBrick = {
+                x: 0,
+                y: topBrick.y - bHeight - 150, 
+                w: bWidth,
+                h: bHeight,
+                dx: speed * (Math.random() > 0.5 ? 1 : -1),
+                isFalling: false
+            };
+        }
+
+        function drawBrick(b) {
+            let grad = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+            grad.addColorStop(0, "#ff4c4c");
+            grad.addColorStop(1, "#9c1414");
+            ctx.fillStyle = grad;
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            
+            // Texture overlay simulation
+            ctx.fillStyle = "rgba(0,0,0,0.1)";
+            for(let i=0; i<b.w; i+=10) {
+                ctx.fillRect(b.x + i, b.y + 10, 2, 2);
+            }
+
+            ctx.strokeStyle = "#3a0000";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(b.x, b.y, b.w, b.h);
+        }
+
+        function gameLoop() {
+            if (gameState !== 'PLAYING') return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw stacked bricks
+            stack.forEach(drawBrick);
+
+            if (activeBrick) {
+                if (!activeBrick.isFalling) {
+                    // Slide left and right
+                    activeBrick.x += activeBrick.dx;
+                    if (activeBrick.x <= 0 || activeBrick.x + activeBrick.w >= canvas.width) {
+                        activeBrick.dx *= -1; // Bounce off edges
+                    }
+                } else {
+                    // Smooth falling physics
+                    activeBrick.y += 15; 
+                    let topBrick = stack[stack.length - 1];
+
+                    // Check if it has reached the height of the top brick
+                    if (activeBrick.y + activeBrick.h >= topBrick.y) {
+                        
+                        // Verify Horizontal Collision (Did it land on it?)
+                        if (activeBrick.x + activeBrick.w > topBrick.x && activeBrick.x < topBrick.x + topBrick.w) {
+                            // Successful Landing! Snap it directly on top
+                            activeBrick.y = topBrick.y - activeBrick.h;
+                            stack.push({...activeBrick});
+                            score++;
+                            scoreEl.innerText = score;
+                            speed += 0.3; // Progressively gets harder
+
+                            // Camera Panning: If stack is high, shift everything down
+                            if (stack.length > 5) {
+                                stack.forEach(b => b.y += bHeight);
+                            }
+
+                            spawnActiveBrick();
+                        } else if (activeBrick.y > canvas.height) {
+                            // Completely missed and fell off screen
+                            gameState = 'GAMEOVER';
+                            statusEl.innerText = "GAME OVER. TAP TO RESTART";
+                            statusEl.style.color = "#777";
+                        }
+                    }
+                }
+                drawBrick(activeBrick);
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function triggerDrop() {
+            if (gameState === 'START' || gameState === 'GAMEOVER') {
+                initGame();
+            } else if (gameState === 'PLAYING' && activeBrick && !activeBrick.isFalling) {
+                activeBrick.isFalling = true; // Initiate drop physics
+            }
+        }
+
+        // Mouse click and Mobile touch support
+        canvas.addEventListener('mousedown', triggerDrop);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevents accidental scrolling
+            triggerDrop();
+        }, { passive: false });
+
+        // Initial Canvas Screen
+        ctx.fillStyle = "#111";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 22px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("TAP HERE TO START", canvas.width/2, canvas.height/2);
+
+    </script>
+</body>
+</html>
